@@ -26,13 +26,33 @@ jobs:
           pip3 install --upgrade pip wheel setuptools
           pip3 install --upgrade buildozer cython
 
-      - name: Build APK with full log
+      - name: Accept Android SDK licenses
+        run: |
+          mkdir -p /home/runner/.buildozer/android/platform/android-sdk
+          cd /home/runner/.buildozer/android/platform/android-sdk
+          # 下载 cmdline-tools
+          curl -sL -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline-tools.zip
+          mkdir -p latest
+          mv cmdline-tools/* latest/
+          rm -f cmdline-tools.zip
+          yes | latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses 2>&1 || true
+          yes | latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk \
+            "platform-tools" \
+            "build-tools;34.0.0" \
+            "platforms;android-34" 2>&1 || true
+          echo "SDK setup completed"
+
+      - name: Build APK
         run: |
           cd mobiletran_apk
+          export BUILDERSDK=/home/runner/.buildozer/android/platform/android-sdk
+          export ANDROID_SDK_ROOT=/home/runner/.buildozer/android/platform/android-sdk
+          export ANDROID_HOME=/home/runner/.buildozer/android/platform/android-sdk
           buildozer android debug 2>&1 | tee build.log
-        continue-on-error: true
 
       - name: Check if APK exists
+        if: always()
         run: |
           echo "=== 检查 bin 目录 ==="
           ls -la mobiletran_apk/bin/ 2>&1 || echo "bin 目录不存在"
