@@ -26,37 +26,34 @@ jobs:
           pip3 install --upgrade pip wheel setuptools
           pip3 install --upgrade buildozer cython
 
-      - name: Accept Android SDK licenses & pre-install SDK
+      - name: Setup Android SDK
         run: |
-          SDK_ROOT=/home/runner/.buildozer/android/platform/android-sdk
-          mkdir -p "$SDK_ROOT"
-          cd "$SDK_ROOT"
-          # 下载新版 cmdline-tools
-          curl -sL -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip -q cmdline-tools.zip
-          mkdir -p latest
-          mv cmdline-tools/* latest/
-          rm -f cmdline-tools.zip
-          # 创建 buildozer 期望的旧版目录结构 (tools/bin/sdkmanager)
-          mkdir -p tools/bin
-          ln -sf "$SDK_ROOT/latest/bin/sdkmanager" "tools/bin/sdkmanager"
+          # GitHub Actions runner 已预装 Android SDK
+          SDK_ROOT=/usr/local/lib/android/sdk
+          echo "=== 预装 SDK 目录结构 ==="
+          ls -la "$SDK_ROOT/"
+          echo "=== build-tools ==="
+          ls -la "$SDK_ROOT/build-tools/" 2>/dev/null || echo "无 build-tools"
+          echo "=== platforms ==="
+          ls -la "$SDK_ROOT/platforms/" 2>/dev/null || echo "无 platforms"
+          echo "=== ndk ==="
+          ls -la "$SDK_ROOT/ndk/" 2>/dev/null || echo "无 ndk"
           # 接受所有许可证
-          yes | latest/bin/sdkmanager --sdk_root="$SDK_ROOT" --licenses 2>&1 || true
-          # 安装必要组件
-          yes | latest/bin/sdkmanager --sdk_root="$SDK_ROOT" \
+          yes | $SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root="$SDK_ROOT" --licenses 2>&1 || true
+          yes | $SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root="$SDK_ROOT" \
             "platform-tools" \
             "build-tools;34.0.0" \
             "platforms;android-34" 2>&1 || true
-          echo "=== SDK 目录结构 ==="
-          ls -la "$SDK_ROOT/tools/bin/"
-          echo "SDK setup completed"
+          echo "Android SDK setup completed"
 
       - name: Build APK
         run: |
           cd mobiletran_apk
-          export BUILDERSDK=/home/runner/.buildozer/android/platform/android-sdk
-          export ANDROID_SDK_ROOT=/home/runner/.buildozer/android/platform/android-sdk
-          export ANDROID_HOME=/home/runner/.buildozer/android/platform/android-sdk
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_NDK_HOME=/usr/local/lib/android/sdk/ndk/27.3.13750724
+          # 清理旧构建缓存（如有架构变更）
+          rm -rf .buildozer
           buildozer android debug 2>&1 | tee build.log
 
       - name: Check if APK exists

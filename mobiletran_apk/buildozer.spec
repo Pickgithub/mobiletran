@@ -81,13 +81,13 @@ android.minapi = 26
 android.targetapi = 34
 
 # (str) Android SDK directory (if not set, buildozer will use custom directory)
-# android.sdk_path = %(android.ndk_path)s/platforms
+android.sdk_path = /usr/local/lib/android/sdk
 
 # (str) Android NDK directory (if not set, buildozer will use custom directory)
-# android.ndk_path = %(android.sdk_path)s/ndk/25.2.9519653
+android.ndk_path = /usr/local/lib/android/sdk/ndk/27.3.13750724
 
 # (str) Android NDK version (if not set, buildozer will use best matching)
-# android.ndk_version = 25c
+android.ndk_version = 27
 
 # (bool) Use --private data storage (True) or --dir public storage (False)
 # android.private_storage = True
