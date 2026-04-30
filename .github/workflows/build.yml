@@ -17,7 +17,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Buildozer dependencies
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y python3-pip python3-dev python3-venv \
@@ -26,20 +26,37 @@ jobs:
           pip3 install --upgrade pip wheel setuptools
           pip3 install --upgrade buildozer cython
 
-      - name: Build APK
+      - name: Build APK with full log
         run: |
           cd mobiletran_apk
           buildozer android debug 2>&1 | tee build.log
+        continue-on-error: true
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: mobiletran-apk
-          path: mobiletran_apk/bin/*.apk
+      - name: Check if APK exists
+        run: |
+          echo "=== 检查 bin 目录 ==="
+          ls -la mobiletran_apk/bin/ 2>&1 || echo "bin 目录不存在"
+          echo "=== 查找 .apk 文件 ==="
+          find mobiletran_apk -name "*.apk" 2>&1 || echo "没有找到 apk"
+          echo "=== 列出 mobiletran_apk 目录 ==="
+          ls -la mobiletran_apk/ 2>&1
 
-      - name: Upload build log
+      - name: Show build.log tail
+        if: always()
+        run: |
+          if [ -f mobiletran_apk/build.log ]; then
+            echo "=== build.log 最后 200 行 ==="
+            tail -200 mobiletran_apk/build.log
+            echo "=== build.log 错误行 ==="
+            grep -i "error\|failed\|exception\|traceback" mobiletran_apk/build.log | head -50
+          else
+            echo "build.log 不存在"
+          fi
+
+      - name: Upload build.log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
           path: mobiletran_apk/build.log
+          if-no-files-found: warn
