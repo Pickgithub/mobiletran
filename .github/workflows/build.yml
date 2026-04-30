@@ -26,21 +26,29 @@ jobs:
           pip3 install --upgrade pip wheel setuptools
           pip3 install --upgrade buildozer cython
 
-      - name: Accept Android SDK licenses
+      - name: Accept Android SDK licenses & pre-install SDK
         run: |
-          mkdir -p /home/runner/.buildozer/android/platform/android-sdk
-          cd /home/runner/.buildozer/android/platform/android-sdk
-          # 下载 cmdline-tools
+          SDK_ROOT=/home/runner/.buildozer/android/platform/android-sdk
+          mkdir -p "$SDK_ROOT"
+          cd "$SDK_ROOT"
+          # 下载新版 cmdline-tools
           curl -sL -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip -q cmdline-tools.zip
           mkdir -p latest
           mv cmdline-tools/* latest/
           rm -f cmdline-tools.zip
-          yes | latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses 2>&1 || true
-          yes | latest/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk \
+          # 创建 buildozer 期望的旧版目录结构 (tools/bin/sdkmanager)
+          mkdir -p tools/bin
+          ln -sf "$SDK_ROOT/latest/bin/sdkmanager" "tools/bin/sdkmanager"
+          # 接受所有许可证
+          yes | latest/bin/sdkmanager --sdk_root="$SDK_ROOT" --licenses 2>&1 || true
+          # 安装必要组件
+          yes | latest/bin/sdkmanager --sdk_root="$SDK_ROOT" \
             "platform-tools" \
             "build-tools;34.0.0" \
             "platforms;android-34" 2>&1 || true
+          echo "=== SDK 目录结构 ==="
+          ls -la "$SDK_ROOT/tools/bin/"
           echo "SDK setup completed"
 
       - name: Build APK
